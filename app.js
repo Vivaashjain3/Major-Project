@@ -13,12 +13,13 @@ const listingRouter=require("./routes/listing.js");
 const reviewRouter=require("./routes/review.js");
 const userRouter=require("./routes/user.js");
 const session=require("express-session");
+const MongoStore = require("connect-mongo");
 const flash=require("connect-flash");
 const passport= require("passport");
 const LocalStratergy = require("passport-local");
 const User=require ("./models/user.js");
 
-
+const dbUrl = process.env.ATLASDB_URL
 
 main()
     .then(()=>{
@@ -28,8 +29,10 @@ main()
     console.log(err)
     });
 
+
+
 async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/wanderlust');
+  await mongoose.connect(dbUrl);
 }
 
 app.set("view engine","ejs");
@@ -39,7 +42,20 @@ app.use(methodOverride("_method"));
 app.engine('ejs',ejsMate);
 app.use(express.static(path.join(__dirname,"public")));
 
+const store=MongoStore.create({
+    mongoUrl:dbUrl,
+    crypto:{
+        secret: "mysupersecretcode",
+    },
+    touchAfter:24*3600,
+});
+
+store.on("error", ()=>{
+    console.log("ERROR in MONGO SESSION STORE", err);
+});
+
 const sessionOptions = {
+    store,
     secret:"mysupersecretcode",
     resave: false,
     saveUninitiazed: false,
@@ -49,6 +65,7 @@ const sessionOptions = {
         httpOnly:true,
     }
 }
+
 
 app.use(session(sessionOptions));
 app.use(flash());
